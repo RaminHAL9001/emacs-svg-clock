@@ -307,3 +307,4 @@ display whatever arbitrary time you choose. Killing the
 \"*svg-clock*\" buffer will delete the timer automatically."
   (interactive)
   (svg-clock-install-update-timer))
+(provide 'svg-clock)
