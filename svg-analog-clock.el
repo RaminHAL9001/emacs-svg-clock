@@ -357,3 +357,5 @@ display whatever arbitrary time you choose. Killing the
     (with-current-buffer svg-analog-clock-global-buffer-handle
       (svg-analog-clock-major-mode)
       (svg-analog-clock-install-update-timer))))
+
+(provide 'svg-analog-clock)
