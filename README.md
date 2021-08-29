@@ -1,7 +1,11 @@
-# svg-analog-clock-mode
+# svg-analog-clock
 ## Emacs analog clock rendered as an SVG
 
 <img src="./example.svg" alt="example-svg-analog-clock" title="Example of what the SVG clock looks like" />
+
+(Note: this was originally called `svg-clock-mode` but this was too
+similar to an existing package on ELPA, so it was renamed to
+`svg-analog-clock`)
 
 ### How to use:
 
