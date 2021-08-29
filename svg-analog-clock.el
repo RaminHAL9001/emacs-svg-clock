@@ -69,6 +69,20 @@ set a timer at a rate of about 20 frames per second. After
 changing this value the changes will not take effect until the
 `svg-analog-clock-install-update-timer' function is callled.")
 
+(defvar svg-analog-clock-show-seconds t
+  "Set to `t' if you want to see the second hand, set to `nil' if
+  you want to see only the hour and minute hand.")
+
+(defun svg-analog-clock-change-update-time (dt)
+  "Prompt for a new update time step value to be set to
+`svg-analog-clock-global-update-time-step', and also reset the
+timer so changes take effect immediately. The minimum valus is
+0.04 seconds, the maximum value is 60.0 seconds."
+  (interactive "nSVG analog clock update time: ")
+  (svg-analog-clock-cancel-update-timer)
+  (setq svg-analog-clock-global-update-time-step (max 0.04 (min 60.0 dt)))
+  (svg-analog-clock-install-update-timer))
+
 ;; -------------------------------------------------------------------------------------------------
 ;; Implementing my own matrix arithmetic for rotating, scaling, and translating points on the
 ;; canvas. If there is a way to do this using only SVG directives, someone please show me how.
@@ -231,7 +245,11 @@ drawn on the clock."
              (remove-images (point-min) (point-max))
              (erase-buffer)
              (put-image
-              (svg-analog-clock-draw (min (window-pixel-width) (window-pixel-height)) hr min sec)
+              (svg-analog-clock-draw
+               (min (window-pixel-width)
+                    (- (window-pixel-height) (window-mode-line-height)))
+               hr min
+               (if svg-analog-clock-show-seconds sec nil))
               (point-min))
              t)))
       (unless svg-analog-clock-result
