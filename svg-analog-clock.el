@@ -89,10 +89,19 @@ changing this value the changes will not take effect until the
   "Translating a 2D point expressed in a cons cell."
   (cons (+ x-off (car cell)) (+ y-off (cdr cell))))
 
+(progn
+ (byte-compile 'point-rotate2d)
+ (byte-compile 'point-scale2d)
+ (byte-compile 'point-trans2d)
+ t)
+
 ;; -------------------------------------------------------------------------------------------------
 ;; Drawing the clock
 
 (defun svg-analog-clock-draw (size hours minutes &optional seconds)
+  "Produce an SVG image of a clock, with a square size of SIZE,
+with the hands pointing at HOURS and MINUTES, and optionally
+drawing a seconds hand pointing at SECONDS."
   (setq hours   (mod hours   12))
   (setq minutes (mod minutes 60))
   (let*((r (/ size 2))
@@ -187,6 +196,10 @@ changing this value the changes will not take effect until the
     ;; Return image
     (svg-image img)))
 
+(progn
+  (byte-compile 'svg-analog-clock-draw)
+  t)
+
 ;; -------------------------------------------------------------------------------------------------
 ;; Define the major mode function
 
@@ -195,7 +208,7 @@ changing this value the changes will not take effect until the
    :syntax-table nil
    :abbrev-table nil
    :after-hook
-   (setq-local kill-buffer-hook #'svg-analog-clock-cancel-update-timer)
+   (setq-local kill-buffer-hook #'svg-analog-clock-cleanup-hook)
    (setq-local cursor-type nil)
    (local-set-key (kbd "q") #'svg-analog-clock-kill-buffer)
    (local-set-key (kbd "C-x k") #'svg-analog-clock-kill-buffer)
@@ -213,15 +226,14 @@ drawn on the clock."
     (unwind-protect
         (setq
          svg-analog-clock-result
-         (with-current-buffer (get-buffer-create "*svg-analog-clock*")
-           (remove-images (point-min) (point-max))
-           (erase-buffer)
-           (svg-analog-clock-major-mode)
-           (put-image
-            (svg-analog-clock-draw (min (window-pixel-width) (window-pixel-height)) hr min sec)
-            (point-min))
-           (switch-to-buffer (current-buffer))
-           t))
+         (with-selected-window svg-analog-clock-global-window-handle
+           (with-current-buffer svg-analog-clock-global-buffer-handle
+             (remove-images (point-min) (point-max))
+             (erase-buffer)
+             (put-image
+              (svg-analog-clock-draw (min (window-pixel-width) (window-pixel-height)) hr min sec)
+              (point-min))
+             t)))
       (unless svg-analog-clock-result
         (message "*svg-analog-clock* cancelling update timer due to error...")
         (svg-analog-clock-cancel-update-timer)))))
@@ -259,6 +271,13 @@ displayed in the \"*svg-analog-clock*\" buffer: [HOUR MINUTE SECOND].")
         (message "*svg-analog-clock* cancelling timer due to error...")
         (svg-analog-clock-cancel-update-timer)))))
 
+(progn
+  (byte-compile 'svg-analog-clock-default-get-time-hook)
+  (byte-compile 'svg-analog-clock-get-current-time)
+  (byte-compile 'svg-analog-clock-update-time-now)
+  (byte-compile 'svg-analog-clock-update-time-to)
+  t)
+
 (setq svg-analog-clock-global-update-timer nil)
 
 (defun svg-analog-clock-install-update-timer ()
@@ -270,7 +289,7 @@ seconds per update."
   (interactive)
   (let ((fps svg-analog-clock-global-update-time-step))
     (if (numberp fps)
-        (setq fps (max fps 0.05))
+        (setq fps (max fps 0.04))
       (setq fps 1.0))
     (when (timerp svg-analog-clock-global-update-timer)
       (svg-analog-clock-cancel-update-timer))
@@ -287,12 +306,17 @@ seconds per update."
     (message "*svg-analog-clock* timer canceled")
     (setq svg-analog-clock-global-update-timer nil)))
 
+(defun svg-analog-clock-cleanup-hook ()
+  (svg-analog-clock-cancel-update-timer)
+  (unintern 'svg-analog-clock-global-buffer-handle obarray)
+  (unintern 'svg-analog-clock-global-window-handle obarray))
+
 (defun svg-analog-clock-kill-buffer ()
   "Delete the \"*svg-analog-clock*\" buffer, ensuring the update timer
   is canceled."
   (interactive)
-  (svg-analog-clock-cancel-update-timer)
-  (kill-buffer "*svg-analog-clock*"))
+  (kill-buffer "*svg-analog-clock*")
+  (svg-analog-clock-cleanup-hook))
 
 (defun svg-analog-clock ()
   "This function displays an analog clock rendered as an SVG
@@ -306,4 +330,12 @@ and then you can call `svg-analog-clock-update-time-to' function to
 display whatever arbitrary time you choose. Killing the
 \"*svg-analog-clock*\" buffer will delete the timer automatically."
   (interactive)
-  (svg-analog-clock-install-update-timer))
+  (setq svg-analog-clock-global-buffer-handle (get-buffer-create "*svg-analog-clock*"))
+  (setq svg-analog-clock-global-window-handle (get-buffer-window svg-analog-clock-global-buffer-handle))
+  (unless svg-analog-clock-global-window-handle
+    (setq svg-analog-clock-global-window-handle (selected-window)))
+  (switch-to-buffer svg-analog-clock-global-buffer-handle)
+  (with-selected-window svg-analog-clock-global-window-handle
+    (with-current-buffer svg-analog-clock-global-buffer-handle
+      (svg-analog-clock-major-mode)
+      (svg-analog-clock-install-update-timer))))
