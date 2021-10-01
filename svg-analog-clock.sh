@@ -1,5 +1,5 @@
 #!/bin/sh
-# Run "./svg-analog-clock.el" as a stand-alone application.
+# Run "./svg-clock.el" as a stand-alone application.
 
 exec emacs -Q -mm \
      -l './svg-analog-clock.el' \
